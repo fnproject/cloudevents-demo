@@ -1,0 +1,11 @@
+name: denismakogon/image-processor
+version: 0.0.1
+runtime: docker
+type: async
+memory: 1024
+format: json
+timeout: 60
+path: /image-processor
+config:
+  DETECT_SENSITIVITY: "0.3"
+idle_timeout: 200

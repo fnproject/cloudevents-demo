@@ -1,0 +1,7 @@
+name: tweet-entry
+version: 0.0.1
+runtime: go
+entrypoint: ./func
+type: async
+format: json
+path: /cloudevent

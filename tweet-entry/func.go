@@ -16,7 +16,6 @@ import (
 	"github.com/fnproject/fdk-go"
 )
 
-
 func main() {
 	fdk.Handle(fdk.HandlerFunc(withError))
 }
@@ -29,6 +28,12 @@ func withError(ctx context.Context, in io.Reader, out io.Writer) {
 		out.Write([]byte(err.Error()))
 		return
 	}
+}
+
+type MediaProcessor struct {
+	EventID   string   `json:"event_id"`
+	EventType string   `json:"event_type"`
+	MediaURL  []string `json:"media"`
 }
 
 func myHandler(ctx context.Context, in io.Reader) error {
@@ -54,16 +59,15 @@ func myHandler(ctx context.Context, in io.Reader) error {
 		nil,
 	)
 
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(struct{
-		EventID string `json:"event_id"`
-		EventType string `json:"event_type"`
-		MediaURL string `json:"media_url"`
-	}{
-		MediaURL: *imgURL,
+	media := MediaProcessor{
+		MediaURL: []string{
+			*imgURL,
+		},
 		EventType: ce.EventType,
-		EventID: ce.EventID,
-	})
+		EventID:   ce.EventID,
+	}
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(media)
 	if err != nil {
 		return err
 	}

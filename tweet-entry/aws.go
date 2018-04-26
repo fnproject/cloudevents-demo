@@ -14,10 +14,10 @@ type AWSObject struct {
 }
 
 type AWSData struct {
-	S3SchemaVersion string `json:"s3SchemaVersion"`
-	ConfigurationID string `json:"configurationId"`
-	Bucket AWSBucket `json:"bucket"`
-	Object AWSObject `json:"object"`
+	S3SchemaVersion string    `json:"s3SchemaVersion"`
+	ConfigurationID string    `json:"configurationId"`
+	Bucket          AWSBucket `json:"bucket"`
+	Object          AWSObject `json:"object"`
 }
 
 func ParseAWSData(ceData interface{}) (*string, error) {

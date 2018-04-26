@@ -22,4 +22,3 @@ func ParseAzureData(ceData interface{}) (*string, error) {
 
 	return &d.URL, nil
 }
-

@@ -96,81 +96,82 @@ def with_graph(label_map):
         log.info("tf graph imported")
         # Read and pre-process an image.
         data = ujson.loads(data)
-        media_url = data.get("media_url")
-
-        log.info("request data unmarshaled, media_url: %s" % media_url)
-        resp = requests.get(media_url)
-        resp.raise_for_status()
-
-        img = cv.imdecode(
-            np.array(bytearray(resp.content), dtype=np.uint8),
-            cv.COLOR_GRAY2BGR
-        )
-        log.info("image loaded")
-
-        rows = img.shape[0]
-        cols = img.shape[1]
-        inp = cv.resize(img, (300, 300))
-        log.info("image resized")
-        inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
-        log.info("image formatted as an input")
-        # Run the model
-        out = sess.run(
-            [sess.graph.get_tensor_by_name('num_detections:0'),
-             sess.graph.get_tensor_by_name('detection_scores:0'),
-             sess.graph.get_tensor_by_name('detection_boxes:0'),
-             sess.graph.get_tensor_by_name('detection_classes:0')],
-            feed_dict={'image_tensor:0':
-                           inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
-        num_detections = int(out[0][0])
-        log.info("detection completed, objects found: %s" % num_detections)
-        for i in range(num_detections):
-            class_id = int(out[3][0][i])
-            label = get_label_by_id(class_id, label_map)
-            score = float(out[1][0][i])
-            bbox = [float(v) for v in out[2][0][i]]
-            if score > SENSITIVITY:
-                log.info("\nobject class id: {0}"
-                         "\nobject display name: {1}"
-                         "\nscore: {2}\n"
-                         .format(class_id,
-                                 label.get("display_name"),
-                                 score))
-                x = bbox[1] * cols
-                y = bbox[0] * rows
-                right = bbox[3] * cols
-                bottom = bbox[2] * rows
-                cv.rectangle(
-                    img,
-                    (int(x), int(y)),
-                    (int(right), int(bottom)),
-                    (125, 255, 51), thickness=2
-                )
-                cv.putText(
-                    img,
-                    label.get("display_name"),
-                    (int(x)+100, int(y)+40),
-                    cv.FONT_HERSHEY_SIMPLEX,
-                    2, (255, 255, 255),
-                    2, cv.LINE_AA
-                )
-
-        log.info("image was processed and updated")
-        h = hashlib.md5()
-        h.update(media_url.encode("utf-8"))
-        filename = 'poster_%s.jpeg' % h.hexdigest()
-        cv.imwrite(filename, img)
-        log.info("image was written to a file: {0}".format(filename))
+        media = data.get("media", [])
+        event_id = data.get("event_id")
+        event_type = data.get("event_type")
+        status = "Event ID: {0}\nEvent type: {1}".format(event_id, event_type)
         api = setup_twitter()
 
-        with open(filename, "rb") as photo:
-            event_id = data.get("event_id")
-            event_type = data.get("event_type")
-            status = "Event ID: {0}\nEvent type: {1}".format(event_id, event_type)
-            resp = api.upload_media(media=photo)
-            log.info("image posted as tweet")
-            api.update_status(status=status, media_ids=[resp["media_id"], ])
-            log.info("image tweet updated with status: {0}".format(status))
+        for media_url in media:
+            log.info("request data unmarshaled, media_url: %s" % media_url)
+            resp = requests.get(media_url)
+            resp.raise_for_status()
+
+            img = cv.imdecode(
+                np.array(bytearray(resp.content), dtype=np.uint8),
+                cv.COLOR_GRAY2BGR
+            )
+            log.info("image loaded")
+
+            rows = img.shape[0]
+            cols = img.shape[1]
+            inp = cv.resize(img, (300, 300))
+            log.info("image resized")
+            inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+            log.info("image formatted as an input")
+            # Run the model
+            out = sess.run(
+                [sess.graph.get_tensor_by_name('num_detections:0'),
+                 sess.graph.get_tensor_by_name('detection_scores:0'),
+                 sess.graph.get_tensor_by_name('detection_boxes:0'),
+                 sess.graph.get_tensor_by_name('detection_classes:0')],
+                feed_dict={'image_tensor:0':
+                               inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+            num_detections = int(out[0][0])
+            log.info("detection completed, objects found: %s" % num_detections)
+            for i in range(num_detections):
+                class_id = int(out[3][0][i])
+                label = get_label_by_id(class_id, label_map)
+                score = float(out[1][0][i])
+                bbox = [float(v) for v in out[2][0][i]]
+                if score > SENSITIVITY:
+                    log.info("\nobject class id: {0}"
+                             "\nobject display name: {1}"
+                             "\nscore: {2}\n"
+                             .format(class_id,
+                                     label.get("display_name"),
+                                     score))
+                    x = bbox[1] * cols
+                    y = bbox[0] * rows
+                    right = bbox[3] * cols
+                    bottom = bbox[2] * rows
+                    cv.rectangle(
+                        img,
+                        (int(x), int(y)),
+                        (int(right), int(bottom)),
+                        (125, 255, 51), thickness=2
+                    )
+                    cv.putText(
+                        img,
+                        label.get("display_name"),
+                        (int(x)+100, int(y)+40),
+                        cv.FONT_HERSHEY_SIMPLEX,
+                        2, (255, 255, 255),
+                        2, cv.LINE_AA
+                    )
+
+            log.info("image was processed and updated")
+            h = hashlib.md5()
+            h.update(media_url.encode("utf-8"))
+            filename = 'poster_%s.jpeg' % h.hexdigest()
+            cv.imwrite(filename, img)
+            log.info("image was written to a file: {0}".format(filename))
+
+            with open(filename, "rb") as photo:
+                resp = api.upload_media(media=photo)
+                log.info("image posted as tweet")
+                api.update_status(status=status, media_ids=[resp["media_id"], ])
+                log.info("image tweet updated with status: {0}".format(status))
 
     return fn
 

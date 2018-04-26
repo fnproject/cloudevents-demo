@@ -1,5 +1,7 @@
 {
-    "media_url": "https://...",
+    "media": [
+        "https://..."
+    ],
     "event_id": "...",
     "event_type": "..."
 }

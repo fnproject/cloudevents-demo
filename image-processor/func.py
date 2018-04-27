@@ -23,14 +23,19 @@ import sys
 import os
 import twython
 import hashlib
+from PIL import Image
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-FN_PREFIX = "/function"
+FN_PREFIX = "/function/tf_models"
 FAST_TF_GRAPH = FN_PREFIX + "/frozen_inference_graph.pb"
 LABEL_MAP = FN_PREFIX + "/coco_label_map.json"
 FN_API_URL = os.environ.get("FN_API_URL")
 FN_APP_NAME = os.environ.get("FN_APP_NAME")
 SENSITIVITY = float(os.environ.get("DETECT_SENSITIVITY", "0.3"))
+HaarPath = FN_PREFIX + "/haarcascade_frontalface_default.xml"
+FaceCascade = cv.CascadeClassifier(HaarPath)
+ThugMaskPath = FN_PREFIX + "/thuglife_mask.png"
 
 
 def setup_twitter():
@@ -86,6 +91,114 @@ def load_tf_graph():
     return graph_def
 
 
+def process_media(sess, media_url, log):
+    log.info("request data unmarshaled, media_url: %s" % media_url)
+    resp = requests.get(media_url)
+    resp.raise_for_status()
+
+    img = cv.imdecode(
+        np.array(bytearray(resp.content), dtype=np.uint8),
+        cv.COLOR_GRAY2BGR
+    )
+    log.info("image loaded")
+
+    inp = cv.resize(img, (300, 300))
+    log.info("image resized")
+    inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+    log.info("image formatted as an input")
+    # Run the model
+    out = sess.run(
+        [sess.graph.get_tensor_by_name('num_detections:0'),
+         sess.graph.get_tensor_by_name('detection_scores:0'),
+         sess.graph.get_tensor_by_name('detection_boxes:0'),
+         sess.graph.get_tensor_by_name('detection_classes:0')],
+        feed_dict={'image_tensor:0':
+                   inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+    return img, out
+
+
+def apply_mask(img, x1, y1, x2, y2):
+    img_pil = Image.fromarray(cv.cvtColor(img, cv.COLOR_BGR2RGB)).convert('RGB')
+
+    mask = Image.open(ThugMaskPath)
+
+    person = img[y1:y2, x1:x2]
+    person_pil = Image.fromarray(cv.cvtColor(person, cv.COLOR_BGR2RGB))
+
+    gray = cv.cvtColor(person, cv.COLOR_BGR2GRAY)
+    faces = FaceCascade.detectMultiScale(gray, 1.15)
+    for (x, y, w, h) in faces:
+        mask = mask.resize((w, h), Image.ANTIALIAS)
+        offset = (x, y)
+        person_pil.paste(mask, offset, mask=mask)
+
+    img_pil.paste(person_pil, (x1, y1))
+
+    return cv.cvtColor(np.array(img_pil), cv.COLOR_RGB2BGR)
+
+
+def process_detection(out, img, label_map, detection_index, log):
+    rows = img.shape[0]
+    cols = img.shape[1]
+    class_id = int(out[3][0][detection_index])
+    label = get_label_by_id(class_id, label_map)
+    score = float(out[1][0][detection_index])
+    bbox = [float(v) for v in out[2][0][detection_index]]
+    if score > SENSITIVITY:
+        log.info("\nobject class id: {0}"
+                 "\nobject display name: {1}"
+                 "\nscore: {2}\n"
+                 .format(class_id,
+                         label.get("display_name"),
+                         score))
+        x = bbox[1] * cols
+        y = bbox[0] * rows
+        right = bbox[3] * cols
+        bottom = bbox[2] * rows
+        if label.get("display_name") == "person":
+            img = apply_mask(img, int(x), int(y), int(right), int(bottom))
+        else:
+            cv.rectangle(
+                img,
+                (int(x), int(y)),
+                (int(right), int(bottom)),
+                (125, 255, 51), thickness=2
+            )
+            cv.putText(
+                img,
+                label.get("display_name"),
+                (int(x), int(y)+20),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.5, (255, 255, 255),
+                2, cv.LINE_AA
+            )
+
+    return img
+
+
+def setup_img_path(media_url):
+    h = hashlib.md5()
+    h.update(media_url.encode("utf-8"))
+    filename = 'poster_%s.jpeg' % h.hexdigest()
+    return filename
+
+
+def tweet_from_filename(twitter_api, status, filename, log):
+    with open(filename, "rb") as photo:
+        resp = twitter_api.upload_media(media=photo)
+        log.info("image posted as tweet")
+        twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
+        log.info("image tweet updated with status: {0}".format(status))
+
+
+def post_tweet(twitter_api, status, media_url, img, log):
+    log.info("image was processed and updated")
+    filename = setup_img_path(media_url)
+    cv.imwrite(filename, img)
+    log.info("image was written to a file: {0}".format(filename))
+    tweet_from_filename(twitter_api, status, filename, log)
+
+
 def with_graph(label_map):
 
     sess = tf.Session()
@@ -94,7 +207,6 @@ def with_graph(label_map):
     def fn(ctx, data=None, loop=None):
         log = get_logger(ctx)
         log.info("tf graph imported")
-        # Read and pre-process an image.
         data = ujson.loads(data)
         media = data.get("media", [])
         event_id = data.get("event_id")
@@ -103,75 +215,13 @@ def with_graph(label_map):
         api = setup_twitter()
 
         for media_url in media:
-            log.info("request data unmarshaled, media_url: %s" % media_url)
-            resp = requests.get(media_url)
-            resp.raise_for_status()
-
-            img = cv.imdecode(
-                np.array(bytearray(resp.content), dtype=np.uint8),
-                cv.COLOR_GRAY2BGR
-            )
-            log.info("image loaded")
-
-            rows = img.shape[0]
-            cols = img.shape[1]
-            inp = cv.resize(img, (300, 300))
-            log.info("image resized")
-            inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
-            log.info("image formatted as an input")
-            # Run the model
-            out = sess.run(
-                [sess.graph.get_tensor_by_name('num_detections:0'),
-                 sess.graph.get_tensor_by_name('detection_scores:0'),
-                 sess.graph.get_tensor_by_name('detection_boxes:0'),
-                 sess.graph.get_tensor_by_name('detection_classes:0')],
-                feed_dict={'image_tensor:0':
-                               inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+            img, out = process_media(sess, media_url, log)
             num_detections = int(out[0][0])
             log.info("detection completed, objects found: %s" % num_detections)
             for i in range(num_detections):
-                class_id = int(out[3][0][i])
-                label = get_label_by_id(class_id, label_map)
-                score = float(out[1][0][i])
-                bbox = [float(v) for v in out[2][0][i]]
-                if score > SENSITIVITY:
-                    log.info("\nobject class id: {0}"
-                             "\nobject display name: {1}"
-                             "\nscore: {2}\n"
-                             .format(class_id,
-                                     label.get("display_name"),
-                                     score))
-                    x = bbox[1] * cols
-                    y = bbox[0] * rows
-                    right = bbox[3] * cols
-                    bottom = bbox[2] * rows
-                    cv.rectangle(
-                        img,
-                        (int(x), int(y)),
-                        (int(right), int(bottom)),
-                        (125, 255, 51), thickness=2
-                    )
-                    cv.putText(
-                        img,
-                        label.get("display_name"),
-                        (int(x)+100, int(y)+40),
-                        cv.FONT_HERSHEY_SIMPLEX,
-                        2, (255, 255, 255),
-                        2, cv.LINE_AA
-                    )
+                img = process_detection(out, img, label_map, i, log)
 
-            log.info("image was processed and updated")
-            h = hashlib.md5()
-            h.update(media_url.encode("utf-8"))
-            filename = 'poster_%s.jpeg' % h.hexdigest()
-            cv.imwrite(filename, img)
-            log.info("image was written to a file: {0}".format(filename))
-
-            with open(filename, "rb") as photo:
-                resp = api.upload_media(media=photo)
-                log.info("image posted as tweet")
-                api.update_status(status=status, media_ids=[resp["media_id"], ])
-                log.info("image tweet updated with status: {0}".format(status))
+            post_tweet(api, status, media_url, img, log)
 
     return fn
 

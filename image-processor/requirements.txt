@@ -2,3 +2,4 @@ tensorflow
 fdk
 requests
 twython
+pillow

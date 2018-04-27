@@ -1,7 +1,7 @@
 {
     "media": [
-        "https://..."
+        "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png"
     ],
-    "event_id": "...",
-    "event_type": "..."
+    "event_id": "test",
+    "event_type": "test"
 }

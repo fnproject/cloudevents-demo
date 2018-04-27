@@ -1,5 +1,5 @@
 name: denismakogon/image-processor
-version: 0.0.1
+version: 0.0.2
 runtime: docker
 type: async
 memory: 1024

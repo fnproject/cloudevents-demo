@@ -1,4 +1,4 @@
-name: denismakogon/image-processor
+name: image-processor
 version: 0.0.2
 runtime: docker
 type: async

@@ -1,11 +1,23 @@
-name: image-processor
-version: 0.0.2
+version: 0.0.21
 runtime: docker
-type: async
+type: sync
 memory: 1024
 format: json
-timeout: 3600
-path: /image-processor
+timeout: 120
 config:
-  DETECT_SENSITIVITY: "0.3"
-idle_timeout: 20
+    DETECT_SENSITIVITY: "0.3"
+    IS_DOCKER4MAC_LOCAL: true
+expects:
+    config:
+        - name: DETECT_SENSITIVITY
+          required: true
+        - name: TWITTER_CONSUMER_KEY
+          required: true
+        - name: TWITTER_CONSUMER_SECRET
+          required: true
+        - name: TWITTER_ACCESS_TOKEN_KEY
+          required: true
+        - name: TWITTER_ACCESS_TOKEN_SECRET
+          required: true
+        - name: IS_DOCKER4MAC_LOCAL
+          required: false

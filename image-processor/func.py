@@ -157,24 +157,23 @@ def process_detection(out, img, label_map, detection_index, log):
         bottom = bbox[2] * rows
         if label.get("display_name") == "person":
             img = apply_mask(img, int(x), int(y), int(right), int(bottom))
-        else:
-            cv.rectangle(
-                img,
-                (int(x), int(y)),
-                (int(right), int(bottom)),
-                (125, 255, 51), thickness=2
-            )
-            cv.putText(
-                img,
-                label.get("display_name"),
-                (int(x), int(y)+20),
-                cv.FONT_HERSHEY_SIMPLEX,
-                0.5, (255, 255, 255),
-                2, cv.LINE_AA
-            )
+        
+        cv.rectangle(
+            img,
+            (int(x), int(y)),
+            (int(right), int(bottom)),
+            (125, 255, 51), thickness=2
+        )
+        cv.putText(
+            img,
+            label.get("display_name"),
+            (int(x), int(y)+20),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.5, (255, 255, 255),
+            2, cv.LINE_AA
+        )
 
     return img
-
 
 def setup_img_path(media_url):
     h = hashlib.md5()

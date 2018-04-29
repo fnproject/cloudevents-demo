@@ -51,6 +51,11 @@ func myHandler(ctx context.Context, in io.Reader) error {
 	fctx := fdk.Context(ctx)
 	u, _ := url.Parse(fctx.RequestURL)
 	fnAPIURL := fctx.RequestURL[:len(fctx.RequestURL)-len(u.EscapedPath())]
+
+	if os.Getenv("IS_DOCKER4MAC_LOCAL") == "true" {
+		fnAPIURL = "http://docker.for.mac.localhost:8080"
+	}
+
 	log.Println("Fn API URL: ", fnAPIURL)
 
 	req, _ := http.NewRequest(

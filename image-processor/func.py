@@ -217,7 +217,7 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
                         time.sleep(delay)
                         post_image_to_slack()
                     else:
-                        raise Exception(ujson.dump(response))
+                        raise Exception(ujson.dumps(response))
 
 
 def with_graph(label_map):

@@ -202,13 +202,15 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
                 return slack_client.api_call(
                     "files.upload",
                     channels=slack_channel,
+                    filename='pic.jpg',
                     file=photo,
                     title=status,
                 )
 
             response = post_image_to_slack()
             if "ok" in response and response["ok"]:
-                log.info("message posted to Slack successfully: " + response["message"]["ts"])
+                log.info("message posted to Slack successfully "
+                         "from image: {0}".format(media_url))
             else:
                 if "headers" in response:
                     hs = response["headers"]
@@ -234,9 +236,9 @@ def with_graph(label_map):
         event_type = data.get("event_type")
         ran_on = data.get("ran_on", "api.fn.from-far-far-away.com")
         status = (
-            "Event ID: {0}\n"
-            "Event type: {1}\n"
-            "Ran on: {2}\n"
+            "Event ID: {0}.\n"
+            "Event type: {1}.\n"
+            "Ran on: {2}.\n"
             .format(event_id, event_type, ran_on)
         )
         twitter_api = setup_twitter()

@@ -1,3 +1,4 @@
+name: image-processor
 version: 0.0.21
 runtime: docker
 type: sync

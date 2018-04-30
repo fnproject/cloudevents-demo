@@ -23,6 +23,7 @@ import sys
 import os
 import twython
 import hashlib
+import slackclient
 from PIL import Image
 
 
@@ -36,6 +37,8 @@ SENSITIVITY = float(os.environ.get("DETECT_SENSITIVITY", "0.3"))
 HaarPath = FN_PREFIX + "/haarcascade_frontalface_default.xml"
 FaceCascade = cv.CascadeClassifier(HaarPath)
 ThugMaskPath = FN_PREFIX + "/thuglife_mask.png"
+SLACK_TOKEN = os.environ.get("SLACK_API_TOKEN")
+SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
 
 
 def setup_twitter():
@@ -175,6 +178,7 @@ def process_detection(out, img, label_map, detection_index, log):
 
     return img
 
+
 def setup_img_path(media_url):
     h = hashlib.md5()
     h.update(media_url.encode("utf-8"))
@@ -182,20 +186,23 @@ def setup_img_path(media_url):
     return filename
 
 
-def tweet_from_filename(twitter_api, status, filename, log):
+def post_image(twitter_api, slack_client, slack_channel, status, media_url, img, log):
+    log.info("image was processed and updated")
+    filename = setup_img_path(media_url)
+    cv.imwrite(filename, img)
+    log.info("image was written to a file: {0}".format(filename))
     with open(filename, "rb") as photo:
         resp = twitter_api.upload_media(media=photo)
         log.info("image posted as tweet")
         twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
         log.info("image tweet updated with status: {0}".format(status))
-
-
-def post_tweet(twitter_api, status, media_url, img, log):
-    log.info("image was processed and updated")
-    filename = setup_img_path(media_url)
-    cv.imwrite(filename, img)
-    log.info("image was written to a file: {0}".format(filename))
-    tweet_from_filename(twitter_api, status, filename, log)
+        if slack_client is not None and slack_channel is not None:
+            slack_client.api_call(
+                "files.upload",
+                channels=slack_channel,
+                file=photo,
+                title=status,
+            )
 
 
 def with_graph(label_map):
@@ -217,7 +224,12 @@ def with_graph(label_map):
             "Ran on: {2}\n"
             .format(event_id, event_type, ran_on)
         )
-        api = setup_twitter()
+        twitter_api = setup_twitter()
+        sc = None
+        if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:
+            sc = slackclient.SlackClient(SLACK_TOKEN)
+        else:
+            log.warning("missing slack token or channel is missing, skipping...")
 
         for media_url in media:
             img, out = process_media(sess, media_url, log)
@@ -226,7 +238,7 @@ def with_graph(label_map):
             for i in range(num_detections):
                 img = process_detection(out, img, label_map, i, log)
 
-            post_tweet(api, status, media_url, img, log)
+            post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, img, log)
 
     return fn
 

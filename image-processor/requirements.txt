@@ -3,3 +3,4 @@ fdk
 requests
 twython
 pillow
+slackclient

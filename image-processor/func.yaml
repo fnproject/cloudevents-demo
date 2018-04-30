@@ -21,3 +21,7 @@ expects:
           required: true
         - name: IS_DOCKER4MAC_LOCAL
           required: false
+        - name: SLACK_API_TOKEN
+          required: true
+        - name: SLACK_CHANNEL
+          required: true

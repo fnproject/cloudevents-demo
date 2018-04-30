@@ -8,5 +8,6 @@
         "https://cdn.inquisitr.com/wp-content/uploads/2015/08/Michigan-highway-sniper.jpg"
     ],
     "event_id": "test",
-    "event_type": "test"
+    "event_type": "test",
+    "ran_on": "<fn-hostname-or-dns>"
 }

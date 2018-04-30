@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
 import fdk
 import numpy as np
 import tensorflow as tf
@@ -197,12 +198,21 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
         twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
         log.info("image tweet updated with status: {0}".format(status))
         if slack_client is not None and slack_channel is not None:
-            slack_client.api_call(
-                "files.upload",
-                channels=slack_channel,
-                file=photo,
-                title=status,
-            )
+            def post_image_to_slack():
+                return slack_client.api_call(
+                    "files.upload",
+                    channels=slack_channel,
+                    file=photo,
+                    title=status,
+                )
+
+            response = post_image_to_slack()
+            if response["ok"]:
+                log.info("message posted to Slack successfully: " + response["message"]["ts"])
+            elif response["ok"] is False and response["headers"]["Retry-After"]:
+                delay = int(response["headers"]["Retry-After"])
+                time.sleep(delay)
+                post_image_to_slack()
 
 
 def with_graph(label_map):

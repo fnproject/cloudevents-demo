@@ -210,7 +210,13 @@ def with_graph(label_map):
         media = data.get("media", [])
         event_id = data.get("event_id")
         event_type = data.get("event_type")
-        status = "Event ID: {0}\nEvent type: {1}".format(event_id, event_type)
+        ran_on = data.get("ran_on", "api.fn.from-far-far-away.com")
+        status = (
+            "Event ID: {0}\n"
+            "Event type: {1}\n"
+            "Ran on: {2}\n"
+            .format(event_id, event_type, ran_on)
+        )
         api = setup_twitter()
 
         for media_url in media:

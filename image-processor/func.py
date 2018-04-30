@@ -207,12 +207,17 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
                 )
 
             response = post_image_to_slack()
-            if response["ok"]:
+            if "ok" in response and response["ok"]:
                 log.info("message posted to Slack successfully: " + response["message"]["ts"])
-            elif response["ok"] is False and response["headers"]["Retry-After"]:
-                delay = int(response["headers"]["Retry-After"])
-                time.sleep(delay)
-                post_image_to_slack()
+            else:
+                if "headers" in response:
+                    hs = response["headers"]
+                    if "Retry-After" in hs:
+                        delay = int(response["headers"]["Retry-After"])
+                        time.sleep(delay)
+                        post_image_to_slack()
+                    else:
+                        raise Exception(ujson.dump(response))
 
 
 def with_graph(label_map):

@@ -1,6 +1,6 @@
 [
   {
-    "fn_api_url": "...",
+    "fn_api_url": "http://127.0.0.1:8080/r/cloudevents/image-processor",
     "payload": {
       "media": [
         "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png",
@@ -16,7 +16,7 @@
     }
   },
   {
-    "fn_api_url": "...",
+    "fn_api_url": "http://127.0.0.1:8080/r/cloudevents/image-processor",
     "payload": {
       "media": [
         "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png",

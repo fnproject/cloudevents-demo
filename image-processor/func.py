@@ -202,9 +202,9 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
                 return slack_client.api_call(
                     "chat.postMessage",
                     channel=slack_channel,
-                    text='postMessage test',
+                    text=status,
                     attachments=ujson.dumps([{
-                        "title": status,
+                        "title": filename,
                         "image_url": tweet[
                             "entities"][
                             "media"][0][

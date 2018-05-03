@@ -38,8 +38,10 @@ SENSITIVITY = float(os.environ.get("DETECT_SENSITIVITY", "0.3"))
 HaarPath = FN_PREFIX + "/haarcascade_frontalface_default.xml"
 FaceCascade = cv.CascadeClassifier(HaarPath)
 ThugMaskPath = FN_PREFIX + "/thuglife_mask.png"
+FnLogo = FN_PREFIX + "/fn-logo.png"
 SLACK_TOKEN = os.environ.get("SLACK_API_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
+ENABLE_LOGO = os.environ.get("ENABLE_FN_LOGO")
 
 
 def setup_twitter():
@@ -177,7 +179,7 @@ def process_detection(out, img, label_map, detection_index, log):
             2, cv.LINE_AA
         )
 
-    return img
+    return class_id, score, img
 
 
 def setup_img_path(media_url):
@@ -260,6 +262,42 @@ def post_image(twitter_api, slack_client, slack_channel,
                     )
 
 
+def add_fn_logo(img):
+    height, width, _ = img.shape
+    img_pil = Image.fromarray(cv.cvtColor(img, cv.COLOR_BGR2RGB)).convert('RGB')
+    mask = Image.open(FnLogo)
+    mask_width, mask_height = mask.size
+    img_ratio = float(height/width)
+    mask_ratio = float(mask_height/mask_width)
+    mask_scale_ration = 1
+    if img_ratio > mask_ratio:
+        # if original image is big - we need to scale up logo
+        mask_scale_ration = img_ratio / mask_ratio
+    if mask_ratio > img_ratio:
+        # if original image is small - we need to scale down logo
+        mask_scale_ration = mask_ratio / img_ratio
+
+    custom_ratio = 3
+
+    if 4 * mask_height > height:
+        custom_ratio *= 1.5
+    if 3 * mask_width > width:
+        custom_ratio *= 2
+
+    if height > 4 * mask_height:
+        custom_ratio /= 1.5
+
+    if width > 3 * mask_width:
+        custom_ratio /= 2
+
+    mask = mask.resize(
+        (int(mask_width * mask_scale_ration / custom_ratio),
+         int(mask_height * mask_scale_ration / custom_ratio)), Image.ANTIALIAS)
+    img_pil.paste(mask, (10, 10), mask=mask)
+
+    return cv.cvtColor(np.array(img_pil), cv.COLOR_RGB2BGR)
+
+
 def with_graph(label_map):
 
     sess = tf.Session()
@@ -276,12 +314,7 @@ def with_graph(label_map):
         if event_type.startswith("Microsoft"):
             event_type = "Azure"
             event_id = event_id.replace("-", "")
-        ran_on = data.get("ran_on", "Generated from Fn Project on Oracle Cloud")
-        status = (
-            'Event ID: "{0}"\nEvent type: "{1}"\nRan on: {2}'
-            .format(event_id, event_type, ran_on)[:140]
-        )
-        log.info("status: {0}".format(status))
+        ran_on = data.get("ran_on", "Processed using Fn Project on Oracle Cloud")
         twitter_api = setup_twitter()
         sc = None
         if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:
@@ -290,11 +323,31 @@ def with_graph(label_map):
             log.warning("missing slack token or channel is missing, skipping...")
 
         for media_url in media:
+            scores = []
+            classes = []
             img, out = process_media(sess, media_url, log)
             num_detections = int(out[0][0])
             log.info("detection completed, objects found: %s" % num_detections)
             for i in range(num_detections):
-                img = process_detection(out, img, label_map, i, log)
+                class_id, score, img = process_detection(out, img, label_map, i, log)
+                scores.append(score)
+                classes.append(class_id)
+
+            max_score = max(scores)
+            max_score_label = classes[scores.index(max_score)]
+            status = (
+                'Event ID: {0}\nEvent Type: {1}\n'
+                'Ran On: {2}\nScore: {3}\nClassifier: {4}\n'
+                .format(event_id, event_type, ran_on,
+                        str(max_score)[:3],
+                        get_label_by_id(
+                            max_score_label,
+                            label_map).get("display_name").upper())[:140]
+            )
+            log.info("status: {0}".format(status))
+
+            if ENABLE_LOGO is not None:
+                img = add_fn_logo(img)
 
             post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, img, log)
 

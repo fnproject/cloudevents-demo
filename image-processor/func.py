@@ -195,16 +195,21 @@ def post_image(twitter_api, slack_client, slack_channel, status, media_url, img,
     with open(filename, "rb") as photo:
         resp = twitter_api.upload_media(media=photo)
         log.info("image posted as tweet")
-        twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
+        tweet = twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
         log.info("image tweet updated with status: {0}".format(status))
         if slack_client is not None and slack_channel is not None:
             def post_image_to_slack():
                 return slack_client.api_call(
-                    "files.upload",
-                    channels=slack_channel,
-                    filename='pic.jpg',
-                    file=photo,
-                    title=status,
+                    "chat.postMessage",
+                    channel=slack_channel,
+                    text=status,
+                    attachments=ujson.dumps([{
+                        "title": filename,
+                        "image_url": tweet[
+                            "entities"][
+                            "media"][0][
+                            "media_url_https"]
+                    }])
                 )
 
             response = post_image_to_slack()

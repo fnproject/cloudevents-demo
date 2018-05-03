@@ -187,44 +187,77 @@ def setup_img_path(media_url):
     return filename
 
 
-def post_image(twitter_api, slack_client, slack_channel, status, media_url, img, log):
+def post_media(slack_client, slack_channel,
+               filename, entities, status, log):
+    medias = entities.get("media", [])
+    for media in medias:
+        if "media_url_https" in media:
+            url = media.get("media_url_https")
+            if url is not None:
+                response = post_image_to_slack(
+                    slack_client, slack_channel, filename, url, status
+                )
+                if "ok" in response and response["ok"]:
+                    log.info("message posted to Slack successfully "
+                             "from image: {0}".format(url))
+                else:
+                    if "headers" in response:
+                        hs = response["headers"]
+                        if "Retry-After" in hs:
+                            delay = int(response["headers"]["Retry-After"])
+                            time.sleep(delay)
+                            post_image_to_slack(
+                                slack_client, slack_channel,
+                                filename, url, status
+                            )
+                        else:
+                            raise Exception(ujson.dumps(response))
+
+
+def post_image_to_slack(slack_client, slack_channel,
+                        filename, img_url, status):
+    return slack_client.api_call(
+        "chat.postMessage",
+        channel=slack_channel,
+        text=status,
+        attachments=ujson.dumps([{
+            "title": filename,
+            "image_url": img_url
+        }])
+    )
+
+
+def post_image(twitter_api, slack_client, slack_channel,
+               status, media_url, img, log):
     log.info("image was processed and updated")
     filename = setup_img_path(media_url)
     cv.imwrite(filename, img)
     log.info("image was written to a file: {0}".format(filename))
     with open(filename, "rb") as photo:
         resp = twitter_api.upload_media(media=photo)
-        log.info("image posted as tweet")
+        log.info("response content type: {0}".format(type(resp)))
+        log.info("after twitter image upload:\n\n\n")
+        log.info(ujson.dumps(resp))
+        log.info("\n\n\nimage posted as tweet")
         tweet = twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
-        log.info("image tweet updated with status: {0}".format(status))
+        log.info("response content type: {0}".format(type(tweet)))
+        log.info("\n\n\nafter twitter status updated\n\n\n")
+        log.info(tweet)
+        log.info("\n\n\nimage tweet updated with status: {0}\n\n\n".format(status))
+        same_tweet = twitter_api.show_status(id=tweet["id"])
+        log.info("response content type: {0}".format(type(same_tweet)))
+        log.info("same tweet later:\n\n\n")
+        log.info(same_tweet)
+        log.info("\n\n\n")
         if slack_client is not None and slack_channel is not None:
-            def post_image_to_slack():
-                return slack_client.api_call(
-                    "chat.postMessage",
-                    channel=slack_channel,
-                    text=status,
-                    attachments=ujson.dumps([{
-                        "title": filename,
-                        "image_url": tweet[
-                            "entities"][
-                            "media"][0][
-                            "media_url_https"]
-                    }])
-                )
 
-            response = post_image_to_slack()
-            if "ok" in response and response["ok"]:
-                log.info("message posted to Slack successfully "
-                         "from image: {0}".format(media_url))
-            else:
-                if "headers" in response:
-                    hs = response["headers"]
-                    if "Retry-After" in hs:
-                        delay = int(response["headers"]["Retry-After"])
-                        time.sleep(delay)
-                        post_image_to_slack()
-                    else:
-                        raise Exception(ujson.dumps(response))
+            if "entities" in tweet:
+                entities = tweet["entities"]
+                if "media" in entities:
+                    post_media(
+                        slack_client, slack_channel,
+                        filename, entities, status, log
+                    )
 
 
 def with_graph(label_map):
@@ -236,16 +269,19 @@ def with_graph(label_map):
         log = get_logger(ctx)
         log.info("tf graph imported")
         data = ujson.loads(data)
+        log.info("incoming data: {0}".format(ujson.dumps(data)))
         media = data.get("media", [])
         event_id = data.get("event_id")
-        event_type = data.get("event_type")
-        ran_on = data.get("ran_on", "api.fn.from-far-far-away.com")
+        event_type = data.get("event_type", "")
+        if event_type.startswith("Microsoft"):
+            event_type = "Azure"
+            event_id = event_id.replace("-", "")
+        ran_on = data.get("ran_on", "Generated from Fn Project on Oracle Cloud")
         status = (
-            "Event ID: {0}.\n"
-            "Event type: {1}.\n"
-            "Ran on: {2}.\n"
-            .format(event_id, event_type, ran_on)
+            'Event ID: "{0}"\nEvent type: "{1}"\nRan on: {2}'
+            .format(event_id, event_type, ran_on)[:140]
         )
+        log.info("status: {0}".format(status))
         twitter_api = setup_twitter()
         sc = None
         if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:

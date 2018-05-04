@@ -38,8 +38,10 @@ SENSITIVITY = float(os.environ.get("DETECT_SENSITIVITY", "0.3"))
 HaarPath = FN_PREFIX + "/haarcascade_frontalface_default.xml"
 FaceCascade = cv.CascadeClassifier(HaarPath)
 ThugMaskPath = FN_PREFIX + "/thuglife_mask.png"
+FnLogo = FN_PREFIX + "/fn-logo.png"
 SLACK_TOKEN = os.environ.get("SLACK_API_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
+ENABLE_LOGO = os.environ.get("ENABLE_FN_LOGO")
 
 
 def setup_twitter():
@@ -177,7 +179,7 @@ def process_detection(out, img, label_map, detection_index, log):
             2, cv.LINE_AA
         )
 
-    return img
+    return class_id, score, img
 
 
 def setup_img_path(media_url):
@@ -187,44 +189,113 @@ def setup_img_path(media_url):
     return filename
 
 
-def post_image(twitter_api, slack_client, slack_channel, status, media_url, img, log):
+def post_media(slack_client, slack_channel,
+               filename, entities, status, log):
+    medias = entities.get("media", [])
+    for media in medias:
+        if "media_url_https" in media:
+            url = media.get("media_url_https")
+            if url is not None:
+                response = post_image_to_slack(
+                    slack_client, slack_channel, filename, url, status
+                )
+                if "ok" in response and response["ok"]:
+                    log.info("message posted to Slack successfully "
+                             "from image: {0}".format(url))
+                else:
+                    if "headers" in response:
+                        hs = response["headers"]
+                        if "Retry-After" in hs:
+                            delay = int(response["headers"]["Retry-After"])
+                            time.sleep(delay)
+                            post_image_to_slack(
+                                slack_client, slack_channel,
+                                filename, url, status
+                            )
+                        else:
+                            raise Exception(ujson.dumps(response))
+
+
+def post_image_to_slack(slack_client, slack_channel,
+                        filename, img_url, status):
+    return slack_client.api_call(
+        "chat.postMessage",
+        channel=slack_channel,
+        text=status,
+        attachments=ujson.dumps([{
+            "title": filename,
+            "image_url": img_url
+        }])
+    )
+
+
+def post_image(twitter_api, slack_client, slack_channel,
+               status, media_url, img, log):
     log.info("image was processed and updated")
     filename = setup_img_path(media_url)
     cv.imwrite(filename, img)
     log.info("image was written to a file: {0}".format(filename))
     with open(filename, "rb") as photo:
         resp = twitter_api.upload_media(media=photo)
-        log.info("image posted as tweet")
+        log.info("response content type: {0}".format(type(resp)))
+        log.info("after twitter image upload:\n\n\n")
+        log.info(ujson.dumps(resp))
+        log.info("\n\n\nimage posted as tweet")
         tweet = twitter_api.update_status(status=status, media_ids=[resp["media_id"], ])
-        log.info("image tweet updated with status: {0}".format(status))
+        log.info("response content type: {0}".format(type(tweet)))
+        log.info("\n\n\nafter twitter status updated\n\n\n")
+        log.info(tweet)
+        log.info("\n\n\nimage tweet updated with status: {0}\n\n\n".format(status))
+        same_tweet = twitter_api.show_status(id=tweet["id"])
+        log.info("response content type: {0}".format(type(same_tweet)))
+        log.info("same tweet later:\n\n\n")
+        log.info(same_tweet)
+        log.info("\n\n\n")
         if slack_client is not None and slack_channel is not None:
-            def post_image_to_slack():
-                return slack_client.api_call(
-                    "chat.postMessage",
-                    channel=slack_channel,
-                    text=status,
-                    attachments=ujson.dumps([{
-                        "title": filename,
-                        "image_url": tweet[
-                            "entities"][
-                            "media"][0][
-                            "media_url_https"]
-                    }])
-                )
 
-            response = post_image_to_slack()
-            if "ok" in response and response["ok"]:
-                log.info("message posted to Slack successfully "
-                         "from image: {0}".format(media_url))
-            else:
-                if "headers" in response:
-                    hs = response["headers"]
-                    if "Retry-After" in hs:
-                        delay = int(response["headers"]["Retry-After"])
-                        time.sleep(delay)
-                        post_image_to_slack()
-                    else:
-                        raise Exception(ujson.dumps(response))
+            if "entities" in tweet:
+                entities = tweet["entities"]
+                if "media" in entities:
+                    post_media(
+                        slack_client, slack_channel,
+                        filename, entities, status, log
+                    )
+
+
+def add_fn_logo(img):
+    height, width, _ = img.shape
+    img_pil = Image.fromarray(cv.cvtColor(img, cv.COLOR_BGR2RGB)).convert('RGB')
+    mask = Image.open(FnLogo)
+    mask_width, mask_height = mask.size
+    img_ratio = float(height/width)
+    mask_ratio = float(mask_height/mask_width)
+    mask_scale_ration = 1
+    if img_ratio > mask_ratio:
+        # if original image is big - we need to scale up logo
+        mask_scale_ration = img_ratio / mask_ratio
+    if mask_ratio > img_ratio:
+        # if original image is small - we need to scale down logo
+        mask_scale_ration = mask_ratio / img_ratio
+
+    custom_ratio = 3
+
+    if 4 * mask_height > height:
+        custom_ratio *= 1.5
+    if 3 * mask_width > width:
+        custom_ratio *= 2
+
+    if height > 4 * mask_height:
+        custom_ratio /= 1.5
+
+    if width > 3 * mask_width:
+        custom_ratio /= 2
+
+    mask = mask.resize(
+        (int(mask_width * mask_scale_ration / custom_ratio),
+         int(mask_height * mask_scale_ration / custom_ratio)), Image.ANTIALIAS)
+    img_pil.paste(mask, (10, 10), mask=mask)
+
+    return cv.cvtColor(np.array(img_pil), cv.COLOR_RGB2BGR)
 
 
 def with_graph(label_map):
@@ -236,16 +307,14 @@ def with_graph(label_map):
         log = get_logger(ctx)
         log.info("tf graph imported")
         data = ujson.loads(data)
+        log.info("incoming data: {0}".format(ujson.dumps(data)))
         media = data.get("media", [])
         event_id = data.get("event_id")
-        event_type = data.get("event_type")
-        ran_on = data.get("ran_on", "api.fn.from-far-far-away.com")
-        status = (
-            "Event ID: {0}.\n"
-            "Event type: {1}.\n"
-            "Ran on: {2}.\n"
-            .format(event_id, event_type, ran_on)
-        )
+        event_type = data.get("event_type", "")
+        if event_type.startswith("Microsoft"):
+            event_type = "Azure"
+            event_id = event_id.replace("-", "")
+        ran_on = data.get("ran_on", "Processed using Fn Project on Oracle Cloud")
         twitter_api = setup_twitter()
         sc = None
         if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:
@@ -254,11 +323,31 @@ def with_graph(label_map):
             log.warning("missing slack token or channel is missing, skipping...")
 
         for media_url in media:
+            scores = []
+            classes = []
             img, out = process_media(sess, media_url, log)
             num_detections = int(out[0][0])
             log.info("detection completed, objects found: %s" % num_detections)
             for i in range(num_detections):
-                img = process_detection(out, img, label_map, i, log)
+                class_id, score, img = process_detection(out, img, label_map, i, log)
+                scores.append(score)
+                classes.append(class_id)
+
+            max_score = max(scores)
+            max_score_label = classes[scores.index(max_score)]
+            status = (
+                'Event ID: {0}\nEvent Type: {1}\n'
+                'Ran On: {2}\nScore: {3}\nClassifier: {4}\n'
+                .format(event_id, event_type, ran_on,
+                        str(max_score)[:3],
+                        get_label_by_id(
+                            max_score_label,
+                            label_map).get("display_name").upper())[:140]
+            )
+            log.info("status: {0}".format(status))
+
+            if ENABLE_LOGO is not None:
+                img = add_fn_logo(img)
 
             post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, img, log)
 

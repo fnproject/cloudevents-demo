@@ -7,8 +7,8 @@
         "http://m.step.aero/Burningman_2017_gifting_plane_rides.jpg",
         "http://m.step.aero/Burningman_2017_raising_and_rigging.jpg"
       ],
-      "event_id": "test",
-      "event_type": "test",
+      "event_id": "AB-123",
+      "event_type": "Multi-Cloud Trigger",
       "ran_on": "Fn Project on Oracle Cloud"
     }
   },
@@ -20,8 +20,8 @@
         "https://pbs.twimg.com/profile_images/625802912887783424/_uzj-IZ4.jpg",
         "http://2wk128489wjq47m3kwxwe9hh.wpengine.netdna-cdn.com/wp-content/uploads/2014/10/hotdog_mustard-main.jpg"
       ],
-      "event_id": "test-1",
-      "event_type": "test-1",
+      "event_id": "AB-123",
+      "event_type": "Multi-Cloud Trigger",
       "ran_on": "Fn Project on Google Cloud"
     }
   }

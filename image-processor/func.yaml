@@ -1,5 +1,5 @@
 name: image-processor
-version: 0.0.88
+version: 0.0.97
 runtime: docker
 type: async
 memory: 1024

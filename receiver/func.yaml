@@ -1,7 +1,8 @@
-version: 0.0.36
+version: 0.0.43
 runtime: go
 entrypoint: ./func
 type: async
+format: cloudevent
 timeout: 360
 config:
   DETECT_SENSITIVITY: "0.3"

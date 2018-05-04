@@ -1,12 +1,19 @@
 {
     "media": [
         "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png",
+        "http://2wk128489wjq47m3kwxwe9hh.wpengine.netdna-cdn.com/wp-content/uploads/2014/10/hotdog_mustard-main.jpg",
         "https://i.ytimg.com/vi/Lu8lDgKInSM/hqdefault.jpg",
         "https://pbs.twimg.com/profile_images/625802912887783424/_uzj-IZ4.jpg",
-        "https://fortunedotcom.files.wordpress.com/2016/08/gettyimages-494272844.jpg",
-        "https://cdn.inquisitr.com/wp-content/uploads/2015/08/Michigan-highway-sniper.jpg"
+        "https://cdn.inquisitr.com/wp-content/uploads/2015/08/Michigan-highway-sniper.jpg",
+        "https://i.ytimg.com/vi/lFarE1hH0ss/maxresdefault.jpg",
+        "http://m.step.aero/Burningman_2017_gifting_plane_rides.jpg",
+        "http://m.step.aero/Burningman_2017_raising_and_rigging.jpg",
+        "http://m.step.aero/Chad's%20Dog.png"
     ],
-    "event_id": "test",
-    "event_type": "test",
+    "media_test": [
+        "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png"
+    ],
+    "event_id": "test_id",
+    "event_type": "test_type",
     "ran_on": "<fn-hostname-or-dns>"
 }

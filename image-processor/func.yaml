@@ -1,10 +1,10 @@
 name: image-processor
-version: 0.0.23
+version: 0.0.88
 runtime: docker
-type: sync
+type: async
 memory: 1024
 format: json
-timeout: 120
+timeout: 360
 config:
   DETECT_SENSITIVITY: "0.3"
   IS_DOCKER4MAC_LOCAL: "true"

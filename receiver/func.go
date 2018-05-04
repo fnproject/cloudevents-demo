@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/fnproject/fdk-go"
@@ -48,13 +47,14 @@ func myHandler(ctx context.Context, in io.Reader) error {
 		return err
 	}
 
-	fctx := fdk.Context(ctx)
-	u, _ := url.Parse(fctx.RequestURL)
-	fnAPIURL := fctx.RequestURL[:len(fctx.RequestURL)-len(u.EscapedPath())]
+	//fctx := fdk.Context(ctx)
+	//u, _ := url.Parse(fctx.RequestURL)
+	//fnAPIURL := fctx.RequestURL[:len(fctx.RequestURL)-len(u.EscapedPath())]
+	fnAPIURL := os.Getenv("FN_API_URL")
 
-	if os.Getenv("IS_DOCKER4MAC_LOCAL") == "true" {
-		fnAPIURL = "http://docker.for.mac.localhost:8080"
-	}
+	// if os.Getenv("IS_DOCKER4MAC_LOCAL") == "true" {
+	// 	fnAPIURL = "http://docker.for.mac.localhost:8080"
+	// }
 
 	log.Println("Fn API URL: ", fnAPIURL)
 

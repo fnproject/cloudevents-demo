@@ -1,4 +1,13 @@
-version: 0.0.22
+version: 0.0.36
 runtime: go
 entrypoint: ./func
-type: sync
+type: async
+timeout: 360
+config:
+  DETECT_SENSITIVITY: "0.3"
+  FN_APP_NAME: cloudevents
+  IS_DOCKER4MAC_LOCAL: "true"
+expects:
+  config:
+  - name: FN_API_URL
+    required: true

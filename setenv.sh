@@ -4,3 +4,4 @@ fn routes config set cloudevents image-processor TWITTER_ACCESS_TOKEN_KEY $TWITT
 fn routes config set cloudevents image-processor TWITTER_ACCESS_TOKEN_SECRET $TWITTER_TOKEN_SECRET
 fn routes config set cloudevents image-processor SLACK_API_TOKEN $SLACK_API_TOKEN
 fn routes config set cloudevents image-processor SLACK_CHANNEL $SLACK_CHANNEL
+fn routes config set cloudevents receiver FN_API_URL $FN_API_URL

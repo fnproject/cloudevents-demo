@@ -314,7 +314,7 @@ def with_graph(label_map):
         if event_type.startswith("Microsoft"):
             event_type = "Azure"
             event_id = event_id.replace("-", "")
-        ran_on = data.get("ran_on", "Processed using Fn Project on Oracle Cloud")
+        ran_on = data.get("ran_on", "Fn Project on Oracle Cloud")
         twitter_api = setup_twitter()
         sc = None
         if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:

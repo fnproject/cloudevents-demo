@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/fnproject/fdk-go"
@@ -35,6 +36,14 @@ type MediaProcessor struct {
 	MediaURL  []string `json:"media"`
 }
 
+func withDefault(key, defaultValue string) string {
+	envValue := os.Getenv(key)
+	if envValue == "" {
+		return defaultValue
+	}
+	return envValue
+}
+
 func myHandler(ctx context.Context, in io.Reader) error {
 	var ce CloudEvent
 	err := json.NewDecoder(in).Decode(&ce)
@@ -47,10 +56,10 @@ func myHandler(ctx context.Context, in io.Reader) error {
 		return err
 	}
 
-	//fctx := fdk.Context(ctx)
-	//u, _ := url.Parse(fctx.RequestURL)
-	//fnAPIURL := fctx.RequestURL[:len(fctx.RequestURL)-len(u.EscapedPath())]
-	fnAPIURL := os.Getenv("FN_API_URL")
+	fctx := fdk.Context(ctx)
+	u, _ := url.Parse(fctx.RequestURL)
+	fnAPIURL := fctx.RequestURL[:len(fctx.RequestURL)-len(u.EscapedPath())]
+	fnAPIURL = withDefault("FN_API_URL", fnAPIURL)
 
 	// if os.Getenv("IS_DOCKER4MAC_LOCAL") == "true" {
 	// 	fnAPIURL = "http://docker.for.mac.localhost:8080"

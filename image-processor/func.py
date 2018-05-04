@@ -41,7 +41,6 @@ ThugMaskPath = FN_PREFIX + "/thuglife_mask.png"
 FnLogo = FN_PREFIX + "/fn-logo.png"
 SLACK_TOKEN = os.environ.get("SLACK_API_TOKEN")
 SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL")
-ENABLE_LOGO = os.environ.get("ENABLE_FN_LOGO")
 
 
 def setup_twitter():
@@ -346,10 +345,7 @@ def with_graph(label_map):
             )
             log.info("status: {0}".format(status))
 
-            if ENABLE_LOGO is not None:
-                img = add_fn_logo(img)
-
-            post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, img, log)
+            post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, add_fn_logo(img), log)
 
     return fn
 

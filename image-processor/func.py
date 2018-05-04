@@ -336,8 +336,8 @@ def with_graph(label_map):
             max_score = max(scores)
             max_score_label = classes[scores.index(max_score)]
             status = (
-                'Event ID: {0}\nEvent Type: {1}\n'
-                'Ran On: {2}\nScore: {3}\nClassifier: {4}\n'
+                'Event ID: {0}\nSource: {1}\n'
+                'Ran On: {2}\nClassifier: {4}\nScore: {3}\n'
                 .format(event_id, event_type, ran_on,
                         str(max_score)[:3],
                         get_label_by_id(

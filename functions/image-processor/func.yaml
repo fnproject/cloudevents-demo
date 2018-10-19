@@ -1,11 +1,11 @@
 schema_version: 20180708
 name: image-processor
-version: 0.0.100
+version: 0.0.101
 runtime: docker
 format: http-stream
 memory: 1024
-idle_timeout: 300
 timeout: 300
+idle_timeout: 300
 config:
   DETECT_SENSITIVITY: "0.3"
   IS_DOCKER4MAC_LOCAL: "true"

@@ -57,7 +57,7 @@ def setup_twitter():
 
 def get_logger(ctx):
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+    root.setLevel(logging.INFO)
     ch = logging.StreamHandler(sys.stderr)
     ch.setLevel(logging.INFO)
     call_id = ctx.CallID()
@@ -184,8 +184,7 @@ def process_detection(out, img, label_map, detection_index, log):
 def setup_img_path(media_url):
     h = hashlib.md5()
     h.update(media_url.encode("utf-8"))
-    filename = 'poster_%s.jpeg' % h.hexdigest()
-    return filename
+    return '/tmp/poster_%s.jpeg' % h.hexdigest()
 
 
 def post_media(slack_client, slack_channel,
@@ -228,8 +227,14 @@ def post_image_to_slack(slack_client, slack_channel,
     )
 
 
-def post_image(twitter_api, slack_client, slack_channel,
-               status, media_url, img, log):
+def post_image(ctx, status, media_url, img):
+    log = get_logger(ctx)
+    slack_client = None
+    if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:
+        slack_client = slackclient.SlackClient(SLACK_TOKEN)
+    else:
+        log.warning("missing slack token or channel is missing, skipping...")
+    twitter_api = setup_twitter()
     log.info("image was processed and updated")
     filename = setup_img_path(media_url)
     cv.imwrite(filename, img)
@@ -250,13 +255,13 @@ def post_image(twitter_api, slack_client, slack_channel,
         log.info("same tweet later:\n\n\n")
         log.info(same_tweet)
         log.info("\n\n\n")
-        if slack_client is not None and slack_channel is not None:
 
+        if slack_client is not None and SLACK_CHANNEL is not None:
             if "entities" in tweet:
                 entities = tweet["entities"]
                 if "media" in entities:
                     post_media(
-                        slack_client, slack_channel,
+                        slack_client, SLACK_CHANNEL,
                         filename, entities, status, log
                     )
 
@@ -297,6 +302,35 @@ def add_fn_logo(img):
     return cv.cvtColor(np.array(img_pil), cv.COLOR_RGB2BGR)
 
 
+def process_single_media_file(ctx, sess, media_url, label_map,
+                              event_id, event_type, ran_on):
+    log = get_logger(ctx)
+    scores = []
+    classes = []
+    img, out = process_media(sess, media_url, log)
+    num_detections = int(out[0][0])
+    log.info("detection completed, objects found: %s" % num_detections)
+    for i in range(num_detections):
+        class_id, score, img = process_detection(
+            out, img, label_map, i, log)
+        scores.append(score)
+        classes.append(class_id)
+
+    max_score = max(scores)
+    max_score_label = classes[scores.index(max_score)]
+    status = (
+        'Event ID: {0}\nSource: {1}\n'
+        'Ran On: {2}\nClassifier: {4}\nScore: {3}\n'
+        .format(event_id, event_type, ran_on,
+                str(max_score)[:3],
+                get_label_by_id(
+                    max_score_label,
+                    label_map).get("display_name").upper())[:140]
+    )
+    log.info("status: {0}".format(status))
+    return img, status
+
+
 def with_graph(label_map):
 
     sess = tf.Session()
@@ -314,38 +348,14 @@ def with_graph(label_map):
             event_type = "Azure"
             event_id = event_id.replace("-", "")
         ran_on = data.get("ran_on", "Fn Project on Oracle Cloud")
-        twitter_api = setup_twitter()
-        sc = None
-        if SLACK_TOKEN is not None or SLACK_CHANNEL is not None:
-            sc = slackclient.SlackClient(SLACK_TOKEN)
-        else:
-            log.warning("missing slack token or channel is missing, skipping...")
 
         for media_url in media:
-            scores = []
-            classes = []
-            img, out = process_media(sess, media_url, log)
-            num_detections = int(out[0][0])
-            log.info("detection completed, objects found: %s" % num_detections)
-            for i in range(num_detections):
-                class_id, score, img = process_detection(out, img, label_map, i, log)
-                scores.append(score)
-                classes.append(class_id)
-
-            max_score = max(scores)
-            max_score_label = classes[scores.index(max_score)]
-            status = (
-                'Event ID: {0}\nSource: {1}\n'
-                'Ran On: {2}\nClassifier: {4}\nScore: {3}\n'
-                .format(event_id, event_type, ran_on,
-                        str(max_score)[:3],
-                        get_label_by_id(
-                            max_score_label,
-                            label_map).get("display_name").upper())[:140]
+            img, status = process_single_media_file(
+                ctx, sess, media_url, label_map,
+                event_id, event_type, ran_on
             )
-            log.info("status: {0}".format(status))
 
-            post_image(twitter_api, sc, SLACK_CHANNEL, status, media_url, add_fn_logo(img), log)
+            post_image(ctx, status, media_url, add_fn_logo(img))
 
     return fn
 

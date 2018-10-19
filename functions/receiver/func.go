@@ -23,7 +23,7 @@ func main() {
 func withError(ctx context.Context, in io.Reader, out io.Writer) {
 	err := myHandler(ctx, in)
 	if err != nil {
-		log.Println("unable to decode STDIN, got error: ", err.Error())
+		log.Println("unable to decode incoming stream, got error: ", err.Error())
 		fdk.WriteStatus(out, http.StatusInternalServerError)
 		out.Write([]byte(err.Error()))
 		return
@@ -69,7 +69,7 @@ func myHandler(ctx context.Context, in io.Reader) error {
 
 	req, _ := http.NewRequest(
 		http.MethodPost,
-		fmt.Sprintf("%s/r/%s%s", fnAPIURL, os.Getenv("FN_APP_NAME"), "/image-processor"),
+		fmt.Sprintf("%s/t/%s%s", fnAPIURL, os.Getenv("FN_APP_NAME"), "/image-processor"),
 		nil,
 	)
 

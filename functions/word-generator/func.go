@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/fnproject/cloudevent"
@@ -59,11 +60,13 @@ func injector(w *Words) fdk.HandlerFunc {
 }
 
 func myHandler(_ context.Context, w *Words, in io.Reader, out io.Writer) error {
+	log.Println("in handler")
 	var ce cloudevent.CloudEvent
 	err := json.NewDecoder(in).Decode(&ce)
 	if err != nil {
 		return err
 	}
+	log.Println("CloudEvent parsed")
 	word := ""
 	respEvent := ""
 	switch ce.EventType {
@@ -89,6 +92,7 @@ func myHandler(_ context.Context, w *Words, in io.Reader, out io.Writer) error {
 		return errors.New(fmt.Sprintf(
 			"unknown CloudEvent event type: %v", ce.EventType))
 	}
+	log.Println("CloudEvent type detected")
 
 	now := time.Now()
 	outCE.Data = map[string]string{
@@ -98,5 +102,14 @@ func myHandler(_ context.Context, w *Words, in io.Reader, out io.Writer) error {
 	outCE.EventTime = &now
 	outCE.EventID = uuid.New().String()
 
-	return json.NewEncoder(out).Encode(outCE)
+	if err := json.NewEncoder(os.Stderr).Encode(outCE); err != nil {
+		log.Println(err.Error())
+	}
+
+	log.Println("outgoing CloudEvent assembled")
+	if err := json.NewEncoder(out).Encode(outCE); err != nil {
+		log.Println(err.Error())
+	}
+	log.Println("outgoing CloudEvent streamed back")
+	return err
 }

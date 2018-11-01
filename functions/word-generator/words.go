@@ -9,19 +9,19 @@ import (
 )
 
 type Words struct {
-	Verb []string `json:"verb"`
-	PluralNoun []string `json:"pluralnoun"`
-	Noun []string `json:"noun"`
+	Verb        []string `json:"verb"`
+	PluralNoun  []string `json:"pluralnoun"`
+	Noun        []string `json:"noun"`
 	Exclamation []string `json:"exclamation"`
-	Adverb []string `json:"adverb"`
-	Adjective []string `json:"adjective"`
+	Adverb      []string `json:"adverb"`
+	Adjective   []string `json:"adjective"`
 
-	LenVerbs int
-	LenPluralNoun int
-	LenNoun int
+	LenVerbs       int
+	LenPluralNoun  int
+	LenNoun        int
 	LenExclamation int
-	LenAdverb int
-	LenAdjective int
+	LenAdverb      int
+	LenAdjective   int
 }
 
 // make len static on init

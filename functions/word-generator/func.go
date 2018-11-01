@@ -22,8 +22,8 @@ func init() {
 
 var outCE = cloudevent.CloudEvent{
 	CloudEventsVersion: "0.1",
-	Source: "http://srcdog.com/cedemo",
-	ContentType: "application/json",
+	Source:             "http://srcdog.com/cedemo",
+	ContentType:        "application/json",
 }
 
 func start() (*Words, error) {
@@ -32,7 +32,7 @@ func start() (*Words, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	return  InitWords(resp.Body)
+	return InitWords(resp.Body)
 }
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 }
 
 func injector(w *Words) fdk.HandlerFunc {
-	f := func (ctx context.Context, in io.Reader, out io.Writer) {
+	f := func(ctx context.Context, in io.Reader, out io.Writer) {
 		err := myHandler(ctx, w, in, out)
 		if err != nil {
 			log.Println(err.Error())

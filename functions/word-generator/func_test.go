@@ -15,8 +15,8 @@ func examineCloudEvent(t *testing.T, incomingEvent *cloudevent.CloudEvent, outgo
 	wordRequested := strings.Split(incomingEvent.EventType, ".")[2]
 	wordGenerated := strings.Split(outgoingEvent.EventType, ".")[2]
 	if wordRequested != wordGenerated {
-		t.Fatalf("Word generation mismatch!" +
-			"\n\tExpected: %v" +
+		t.Fatalf("Word generation mismatch!"+
+			"\n\tExpected: %v"+
 			"\n\tActual: %v", wordRequested, wordGenerated)
 	}
 	wordMap := outgoingEvent.Data.(map[string]interface{})
@@ -27,7 +27,7 @@ func examineCloudEvent(t *testing.T, incomingEvent *cloudevent.CloudEvent, outgo
 	t.Logf("word of type '%v' is: %v", wordRequested, wordMap["word"])
 }
 
-func TestWordGenerator(t *testing.T){
+func TestWordGenerator(t *testing.T) {
 
 	w, err := start()
 	if err != nil {
@@ -45,7 +45,7 @@ func TestWordGenerator(t *testing.T){
 	}
 
 	for _, incomingEvent := range ceBurst {
-		for i := 0; i < 1000; i ++ {
+		for i := 0; i < 1000; i++ {
 			t.Run(fmt.Sprintf("test-cloudevent-%v-iteration-%v",
 				incomingEvent.EventType, i), func(t *testing.T) {
 				var in, out bytes.Buffer

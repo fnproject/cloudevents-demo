@@ -1,9 +1,10 @@
 schema_version: 20180708
 name: word-generator
-version: 0.0.9
+version: 0.0.13
 runtime: go
 entrypoint: ./func
 format: http-stream
+memory: 256
 triggers:
 - name: word-generator-trigger
   type: http

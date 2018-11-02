@@ -40,5 +40,12 @@
     "source":"http://srcdog.com/cedemo",
     "eventID":"96fb5f0b-001e-0108-6dfe-da6e2806f124",
     "eventTime":"2018-10-23T12:28:22.4579346Z"
+  },
+  {
+    "cloudEventsVersion":"0.1",
+    "eventType":"word.found.name",
+    "source":"http://srcdog.com/cedemo",
+    "eventID":"96fb5f0b-001e-0108-6dfe-da6e2806f124",
+    "eventTime":"2018-10-23T12:28:22.4579346Z"
   }
 ]

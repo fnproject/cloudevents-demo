@@ -2,77 +2,46 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
+	"log"
 	"math/rand"
+	"strings"
+	"time"
 
-	"github.com/castillobgr/sententia"
+	"github.com/fnproject/cloudevent"
+	"github.com/google/uuid"
 )
 
-type Words struct {
-	Verb        []string `json:"verb"`
-	PluralNoun  []string `json:"pluralnoun"`
-	Noun        []string `json:"noun"`
-	Exclamation []string `json:"exclamation"`
-	Adverb      []string `json:"adverb"`
-	Adjective   []string `json:"adjective"`
+type WordsV2 map[string][]string
 
-	LenVerbs       int
-	LenPluralNoun  int
-	LenNoun        int
-	LenExclamation int
-	LenAdverb      int
-	LenAdjective   int
-}
-
-// make len static on init
-func (w *Words) RandomVerb() string {
-	return w.Verb[rand.Intn(w.LenVerbs)]
-}
-
-func (w *Words) RandomNoun() string {
-	newNoun, err := sententia.Make("{{ noun }}")
-	if err != nil {
-		return w.Noun[rand.Intn(w.LenNoun)]
-	}
-	return newNoun
-}
-
-func (w *Words) RandomPluralNoun() string {
-	return w.PluralNoun[rand.Intn(w.LenPluralNoun)]
-}
-
-func (w *Words) RandomExclamation() string {
-	return w.Exclamation[rand.Intn(w.LenExclamation)]
-}
-
-func (w *Words) RandomAdverb() string {
-	return w.Adverb[rand.Intn(w.LenAdverb)]
-}
-
-func (w *Words) RandomAdjective() string {
-	newAdj, err := sententia.Make("{{ adjective }}")
-	if err != nil {
-		return w.Adjective[rand.Intn(w.LenAdjective)]
-	}
-	return newAdj
-}
-
-func InitWords(r io.Reader) (*Words, error) {
-	var w Words
+func InitWordsV2(r io.Reader) (*WordsV2, error) {
+	var w WordsV2
 	err := json.NewDecoder(r).Decode(&w)
 	if err != nil {
 		return nil, err
 	}
 
-	sententia.AddAdjectives(w.Adjective)
-	sententia.AddNouns(w.Noun)
-
-	w.LenVerbs = len(w.Verb)
-	w.LenAdjective = len(w.Adjective)
-	w.LenAdverb = len(w.Adverb)
-	w.LenNoun = len(w.Noun)
-	w.LenPluralNoun = len(w.PluralNoun)
-	w.LenExclamation = len(w.Exclamation)
-
 	return &w, nil
+}
+
+func pickWordV2(w *WordsV2, ce *cloudevent.CloudEvent) error {
+	t := strings.Split(ce.EventType, ".")[2]
+	val := (*w)[t]
+	valSize := len(val)
+	if valSize == 0 {
+		return errors.New(fmt.Sprintf(
+			"unknown CloudEvent event type: %v", ce.EventType))
+	}
+	log.Println("CloudEvent type detected")
+	now := time.Now()
+	ce.Data = map[string]string{
+		"word": val[rand.Intn(valSize)],
+	}
+	ce.EventType = fmt.Sprintf("word.picked.%v", t)
+	ce.EventTime = &now
+	ce.EventID = uuid.New().String()
+
+	return nil
 }

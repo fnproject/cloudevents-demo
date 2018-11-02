@@ -9,7 +9,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/fnproject/cloudevent"
@@ -19,12 +18,6 @@ import (
 
 func init() {
 	rand.Seed(time.Now().Unix())
-}
-
-var outCE = cloudevent.CloudEvent{
-	CloudEventsVersion: "0.1",
-	Source:             "http://srcdog.com/cedemo",
-	ContentType:        "application/json",
 }
 
 func start() (*Words, error) {
@@ -59,14 +52,56 @@ func injector(w *Words) fdk.HandlerFunc {
 	return f
 }
 
-func myHandler(_ context.Context, w *Words, in io.Reader, out io.Writer) error {
-	log.Println("in handler")
-	var ce cloudevent.CloudEvent
-	err := json.NewDecoder(in).Decode(&ce)
-	if err != nil {
+func detectCEBinaryMode(ctx context.Context, ce *cloudevent.CloudEvent) bool {
+	fctx := fdk.GetContext(ctx)
+	hs := fctx.Header()
+
+	ceVersion := hs.Get("ce-cloudeventsversion")
+	if ceVersion != "" {
+		log.Println("CloudEvent is in binary format")
+		t, err := time.Parse(time.RFC3339, hs.Get("ce-eventtime"))
+		if err != nil {
+			t = time.Now()
+		}
+		ce.EventType = hs.Get("ce-eventtype")
+		ce.EventID = hs.Get("ce-eventid")
+		ce.Source = hs.Get("ce-source")
+		ce.CloudEventsVersion = ceVersion
+		ce.EventTime = &t
+		return true
+	}
+	return false
+}
+
+func streamJSON(_ context.Context, ce *cloudevent.CloudEvent, out io.Writer) error {
+	if ce.CloudEventsVersion == "" {
+		ce.CloudEventsVersion = "0.1"
+	}
+	if ce.Source == "" {
+		ce.Source = "http://srcdog.com/cedemo"
+	}
+	if ce.ContentType == "" {
+		ce.ContentType = "application/json"
+	}
+
+	if err := json.NewEncoder(out).Encode(ce); err != nil {
 		return err
 	}
-	log.Println("CloudEvent parsed")
+	log.Println("outgoing CloudEvent streamed back")
+	return nil
+}
+
+func streamBinary(_ context.Context, ce *cloudevent.CloudEvent, out io.Writer) error {
+	fdk.SetHeader(out, "ce-eventtype", ce.EventType)
+	fdk.SetHeader(out, "ce-eventid", ce.EventID)
+	fdk.SetHeader(out, "ce-eventtime", ce.EventTime.Format(time.RFC3339))
+	fdk.SetHeader(out, "ce-cloudeventsversion", ce.CloudEventsVersion)
+	fdk.SetHeader(out, "ce-source", "Oracle Functions")
+
+	return json.NewEncoder(out).Encode(ce.Data)
+}
+
+func pickWord(w *Words, ce *cloudevent.CloudEvent) error {
 	word := ""
 	respEvent := ""
 	switch ce.EventType {
@@ -93,23 +128,38 @@ func myHandler(_ context.Context, w *Words, in io.Reader, out io.Writer) error {
 			"unknown CloudEvent event type: %v", ce.EventType))
 	}
 	log.Println("CloudEvent type detected")
-
 	now := time.Now()
-	outCE.Data = map[string]string{
+	ce.Data = map[string]string{
 		"word": word,
 	}
-	outCE.EventType = respEvent
-	outCE.EventTime = &now
-	outCE.EventID = uuid.New().String()
+	ce.EventType = respEvent
+	ce.EventTime = &now
+	ce.EventID = uuid.New().String()
 
-	if err := json.NewEncoder(os.Stderr).Encode(outCE); err != nil {
-		log.Println(err.Error())
+	return nil
+}
+
+func myHandler(ctx context.Context, w *Words, in io.Reader, out io.Writer) error {
+	log.Println("in handler")
+
+	var ce cloudevent.CloudEvent
+	isBinary := detectCEBinaryMode(ctx, &ce)
+	if !isBinary {
+		err := json.NewDecoder(in).Decode(&ce)
+		if err != nil {
+			return err
+		}
 	}
 
-	log.Println("outgoing CloudEvent assembled")
-	if err := json.NewEncoder(out).Encode(outCE); err != nil {
-		log.Println(err.Error())
+	log.Println("CloudEvent parsed")
+	err := pickWord(w, &ce)
+	if err != nil {
+		return err
 	}
-	log.Println("outgoing CloudEvent streamed back")
-	return err
+
+	if !isBinary {
+		return streamJSON(ctx, &ce, out)
+	}
+
+	return streamBinary(ctx, &ce, out)
 }

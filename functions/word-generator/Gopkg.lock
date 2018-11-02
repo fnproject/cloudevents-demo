@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/castillobgr/sententia"
-  packages = ["."]
-  revision = "9b04b4a53625e6af0b410a8ab124492442535e65"
-  version = "v2.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/fnproject/cloudevent"
   packages = ["."]
@@ -28,6 +22,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "21ba6eade337b5400fc6d95c8f8e6e3a349bb32ba913b7276151b38a5935c03d"
+  inputs-digest = "e052e48c5f93ee68ebd248b2511f224d36d4148c136cc2a0df5f84af458e6d14"
   solver-name = "gps-cdcl"
   solver-version = 1

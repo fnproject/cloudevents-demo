@@ -9,9 +9,6 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/fnproject/cloudevent"
-	"github.com/google/uuid"
 )
 
 type WordsV2 map[string][]string
@@ -26,7 +23,7 @@ func InitWordsV2(r io.Reader) (*WordsV2, error) {
 	return &w, nil
 }
 
-func pickWordV2(w *WordsV2, ce *cloudevent.CloudEvent) error {
+func pickWordV2(w *WordsV2, ce *CloudEvent) error {
 	t := strings.Split(ce.EventType, ".")[2]
 	val := (*w)[t]
 	valSize := len(val)
@@ -41,7 +38,6 @@ func pickWordV2(w *WordsV2, ce *cloudevent.CloudEvent) error {
 	}
 	ce.EventType = fmt.Sprintf("word.picked.%v", t)
 	ce.EventTime = &now
-	ce.EventID = uuid.New().String()
 
 	return nil
 }

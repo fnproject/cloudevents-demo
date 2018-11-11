@@ -48,6 +48,7 @@ func postStructured(ctx context.Context, outCE *CloudEvent, callBackURL string) 
 	var b bytes.Buffer
 	err := streamJSON(ctx, outCE, &b)
 	r, _ := http.NewRequest(http.MethodPost, callBackURL, &b)
+	r.Header.Set("Content-Type", "application/cloudevent+json")
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		io.WriteString(os.Stderr, err.Error())
@@ -59,11 +60,13 @@ func postBinary(outCE *CloudEvent, callBackURL string) {
 	var b bytes.Buffer
 	json.NewEncoder(&b).Encode(outCE.Data)
 	r, _ := http.NewRequest(http.MethodPost, callBackURL, &b)
+	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("ce-type", outCE.EventType)
 	r.Header.Set("ce-id", outCE.EventID)
 	r.Header.Set("ce-time", outCE.EventTime.Format(time.RFC3339))
 	r.Header.Set("ce-specversion", outCE.CloudEventsVersion)
 	r.Header.Set("ce-source", "Oracle Functions")
+	r.Header.Set("ce-relatedid", outCE.RelatedID)
 
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {

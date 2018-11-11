@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"time"
@@ -20,6 +21,8 @@ import (
 func init() {
 	rand.Seed(time.Now().Unix())
 }
+
+var CEType = "application/cloudevents+json"
 
 func start() (*WordsV2, error) {
 	value, ok := os.LookupEnv("WORD_SOURCE")
@@ -48,7 +51,9 @@ func postStructured(ctx context.Context, outCE *CloudEvent, callBackURL string) 
 	var b bytes.Buffer
 	err := streamJSON(ctx, outCE, &b)
 	r, _ := http.NewRequest(http.MethodPost, callBackURL, &b)
-	r.Header.Set("Content-Type", "application/cloudevent+json")
+	r.Header.Set("Content-Type", CEType)
+	rBytes, _ := httputil.DumpRequest(r, true)
+	os.Stderr.Write(rBytes)
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		io.WriteString(os.Stderr, err.Error())
@@ -68,6 +73,8 @@ func postBinary(outCE *CloudEvent, callBackURL string) {
 	r.Header.Set("ce-source", "Oracle Functions")
 	r.Header.Set("ce-relatedid", outCE.RelatedID)
 
+	rBytes, _ := httputil.DumpRequest(r, true)
+	os.Stderr.Write(rBytes)
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		io.WriteString(os.Stderr, err.Error())
@@ -99,7 +106,6 @@ func proceedWithCallback(ctx context.Context, isBinary bool, outCE *CloudEvent) 
 		return
 	}
 	os.Stderr.WriteString("X-Callback-Url is not set\n")
-	json.NewEncoder(os.Stderr).Encode(outCE)
 }
 
 func injector(w *WordsV2) fdk.HandlerFunc {
@@ -129,8 +135,6 @@ func myHandler(ctx context.Context, w *WordsV2, in io.Reader) (*CloudEvent, bool
 			return nil, false, err
 		}
 	}
-	json.NewEncoder(os.Stderr).Encode(ce)
-
 	log.Println("CloudEvent parsed")
 	err := pickWordV2(w, &ce)
 	if err != nil {

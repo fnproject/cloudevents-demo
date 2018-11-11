@@ -117,8 +117,23 @@ func injector(w *WordsV2) fdk.HandlerFunc {
 			io.WriteString(out, err.Error())
 			return
 		}
-
-		proceedWithCallback(ctx, isBinary, outCE)
+		_, isSync := os.LookupEnv("SYNC_MODE")
+		if !isSync {
+			proceedWithCallback(ctx, isBinary, outCE)
+		} else {
+			if !isBinary {
+				json.NewEncoder(out).Encode(outCE)
+			} else {
+				fdk.SetHeader(out,"Content-Type", "application/json")
+				fdk.SetHeader(out,"ce-type", outCE.EventType)
+				fdk.SetHeader(out,"ce-id", outCE.EventID)
+				fdk.SetHeader(out,"ce-time", outCE.EventTime.Format(time.RFC3339))
+				fdk.SetHeader(out,"ce-specversion", outCE.CloudEventsVersion)
+				fdk.SetHeader(out,"ce-source", "Oracle Functions")
+				fdk.SetHeader(out,"ce-relatedid", outCE.RelatedID)
+				json.NewEncoder(out).Encode(outCE.Data)
+			}
+		}
 		fdk.WriteStatus(out, http.StatusOK)
 	}
 	return f

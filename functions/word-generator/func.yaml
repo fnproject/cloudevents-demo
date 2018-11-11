@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: word-generator
-version: 0.0.19
+version: 0.0.20
 runtime: go
 entrypoint: ./func
 memory: 256

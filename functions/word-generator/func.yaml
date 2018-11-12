@@ -1,0 +1,12 @@
+schema_version: 20180708
+name: word-generator
+version: 0.0.20
+runtime: go
+entrypoint: ./func
+memory: 256
+config:
+  WORD_SOURCE: https://srcdog.com/madlibs/words.txt
+triggers:
+- name: word-generator-trigger
+  type: http
+  source: /word-generator-trigger

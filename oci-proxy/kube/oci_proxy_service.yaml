@@ -1,14 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: oci-proxy
-  labels:
-    app: oci-proxy
+  name: oci-proxy-service
 spec:
+  selector:
+    app: oci.proxy
   type: LoadBalancer
   ports:
-  - name: oci-proxy
-    port: 9999
-    targetPort: 9999
-  selector:
-    app: oci-proxy
+  - protocol: TCP
+    port: 80
+    targetPort: 8080

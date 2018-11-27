@@ -50,5 +50,5 @@ func main() {
 
 	http.HandleFunc("/word-generator", setupHandler(p, invokeEndpoint))
 	http.HandleFunc("/ping", ping)
-	log.Fatal(http.ListenAndServe(":9999", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

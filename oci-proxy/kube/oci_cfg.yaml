@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: oci_config
+  name: oci.proxy
   labels:
-    app: oci-proxy
+    app: oci.proxy
 data:
   compartment: <your-oci-compartment>
   tenancy: <your-tenancy>

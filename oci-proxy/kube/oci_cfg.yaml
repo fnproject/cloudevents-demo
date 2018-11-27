@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oci_config
+  labels:
+    app: oci-proxy
+data:
+  compartment: <your-oci-compartment>
+  tenancy: <your-tenancy>
+  user: <your-username>
+  region: <your-oci-region>
+  fingerprint: <your-user-fingerprint>
+  key: <your-user-raw-private-key>
+  key_pass: <your-raw-private-key-pass>
+  invoke_endpoint: <fn-invoke-endpoint>

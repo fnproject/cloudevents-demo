@@ -1,0 +1,61 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: oci-proxy
+  labels:
+    app: oci-proxy
+spec:
+  replicas: 3
+  containers:
+    - name: oci-proxy-app
+      image: denismakogon/oci-proxy:latest
+      ports:
+      - containerPort: 9999
+      readinessProbe:
+        httpGet:
+          path: /ping
+          port: 9999
+        initialDelaySeconds: 3
+        periodSeconds: 3
+      env:
+        - name: OCI_COMPARTMENT
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: compartment
+        - name: OCI_TENANCY
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: tenancy
+        - name: OCI_USER
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: user
+        - name: OCI_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: region
+        - name: OCI_FINGERPRINT
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: fingerprint
+        - name: OCI_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: key
+        - name: OCI_KEY_PASS
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: key_pass
+        - name: FN_INVOKE_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: oci_cfg
+              key: invoke_endpoint
+  restartPolicy: Never

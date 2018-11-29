@@ -1,0 +1,23 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+    name: oci.proxy.sidecar
+    labels:
+        app: oci.proxy
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: oci.proxy
+    template:
+        metadata:
+          labels:
+            app: oci.proxy
+        spec:
+            restartPolicy: Always
+            containers:
+              - name: oci-proxy-sidecare-app
+                image: denismakogon/oci-proxy-sidecar:0.0.2
+                env:
+                  - name: OCI_PROXY_URL
+                    value: "http://cloudevents.fnservice.io/word-generator"

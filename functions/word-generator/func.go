@@ -124,13 +124,13 @@ func injector(w *WordsV2) fdk.HandlerFunc {
 			if !isBinary {
 				json.NewEncoder(out).Encode(outCE)
 			} else {
-				fdk.SetHeader(out,"Content-Type", "application/json")
-				fdk.SetHeader(out,"ce-type", outCE.EventType)
-				fdk.SetHeader(out,"ce-id", outCE.EventID)
-				fdk.SetHeader(out,"ce-time", outCE.EventTime.Format(time.RFC3339))
-				fdk.SetHeader(out,"ce-specversion", outCE.CloudEventsVersion)
-				fdk.SetHeader(out,"ce-source", "Oracle Functions")
-				fdk.SetHeader(out,"ce-relatedid", outCE.RelatedID)
+				fdk.SetHeader(out, "Content-Type", "application/json")
+				fdk.SetHeader(out, "ce-type", outCE.EventType)
+				fdk.SetHeader(out, "ce-id", outCE.EventID)
+				fdk.SetHeader(out, "ce-time", outCE.EventTime.Format(time.RFC3339))
+				fdk.SetHeader(out, "ce-specversion", outCE.CloudEventsVersion)
+				fdk.SetHeader(out, "ce-source", "Oracle Functions")
+				fdk.SetHeader(out, "ce-relatedid", outCE.RelatedID)
 				json.NewEncoder(out).Encode(outCE.Data)
 			}
 		}

@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: image-processor
-version: 0.0.101
+version: 0.0.104
 runtime: docker
 format: http-stream
 memory: 1024
@@ -8,7 +8,6 @@ timeout: 300
 idle_timeout: 300
 config:
   DETECT_SENSITIVITY: "0.3"
-  IS_DOCKER4MAC_LOCAL: "true"
 expects:
   config:
   - name: DETECT_SENSITIVITY
@@ -21,8 +20,6 @@ expects:
     required: true
   - name: TWITTER_ACCESS_TOKEN_SECRET
     required: true
-  - name: IS_DOCKER4MAC_LOCAL
-    required: false
   - name: SLACK_API_TOKEN
     required: true
   - name: SLACK_CHANNEL

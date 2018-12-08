@@ -186,8 +186,7 @@ def setup_img_path(media_url):
     return '/tmp/poster_%s.jpeg' % h.hexdigest()
 
 
-def post_media(slack_client, slack_channel,
-               filename, entities, status, log):
+def post_media(slack_client, slack_channel, filename, entities, status, log):
     medias = entities.get("media", [])
     for media in medias:
         if "media_url_https" in media:
@@ -197,8 +196,7 @@ def post_media(slack_client, slack_channel,
                     slack_client, slack_channel, filename, url, status
                 )
                 if "ok" in response and response["ok"]:
-                    log.info("message posted to Slack successfully "
-                             "from image: {0}".format(url))
+                    log.info("message posted to Slack successfully from image: {0}".format(url))
                 else:
                     if "headers" in response:
                         hs = response["headers"]
@@ -213,8 +211,7 @@ def post_media(slack_client, slack_channel,
                             raise Exception(ujson.dumps(response))
 
 
-def post_image_to_slack(slack_client, slack_channel,
-                        filename, img_url, status):
+def post_image_to_slack(slack_client, slack_channel,filename, img_url, status):
     return slack_client.api_call(
         "chat.postMessage",
         channel=slack_channel,
@@ -301,8 +298,7 @@ def add_fn_logo(img):
     return cv.cvtColor(np.array(img_pil), cv.COLOR_RGB2BGR)
 
 
-def process_single_media_file(ctx, sess, media_url, label_map,
-                              event_id, event_type, ran_on):
+def process_single_media_file(ctx, sess, media_url, label_map, event_id, event_type, ran_on):
     log = get_logger(ctx)
     scores = []
     classes = []
@@ -310,8 +306,7 @@ def process_single_media_file(ctx, sess, media_url, label_map,
     num_detections = int(out[0][0])
     log.info("detection completed, objects found: %s" % num_detections)
     for i in range(num_detections):
-        class_id, score, img = process_detection(
-            out, img, label_map, i, log)
+        class_id, score, img = process_detection(out, img, label_map, i, log)
         scores.append(score)
         classes.append(class_id)
 
@@ -338,6 +333,7 @@ def with_graph(label_map):
     def fn(ctx, data=None, loop=None):
         log = get_logger(ctx)
         log.info("tf graph imported")
+        
         if data is not None or len(data) !=0:
             data = ujson.loads(data)
             log.info("incoming data: {0}".format(ujson.dumps(data)))

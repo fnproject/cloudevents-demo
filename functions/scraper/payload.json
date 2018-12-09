@@ -1,0 +1,5 @@
+{
+  "query": "person",
+  "num": "5",
+  "service_to_call": "image-processor"
+}

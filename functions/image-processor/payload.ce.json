@@ -1,0 +1,11 @@
+{
+    "specversion":"0.2",
+    "type":"cloudevent.flickr.image",
+    "source":"scraper",
+    "id":"my-id",
+    "contenttype":"application\/json",
+    "data":{
+        "photo_url":"https:\/\/farm2.staticflickr.com\/1051\/1154370504_58bafbc654_c.jpg"
+    },
+    "extensions":{}
+}

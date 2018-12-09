@@ -1,0 +1,4 @@
+fdk
+flickrapi
+requests
+cloudevents

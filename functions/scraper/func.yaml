@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: scraper
-version: 0.0.29
+version: 0.0.30
 runtime: python3.7
 entrypoint: python3 func.py
 format: http-stream

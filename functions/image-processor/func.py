@@ -326,7 +326,6 @@ def process_single_media_file(ctx, sess, media_url, label_map, event_id, event_t
 
 
 def with_graph(label_map):
-
     sess = tf.Session()
     sess.graph.as_default()
 
@@ -337,23 +336,23 @@ def with_graph(label_map):
         if data is not None or len(data) !=0:
             data = ujson.loads(data)
             log.info("incoming data: {0}".format(ujson.dumps(data)))
-            media = data.get("media", [])
-            event_id = data.get("event_id")
-            event_type = data.get("event_type", "")
-            if event_type.startswith("Microsoft"):
-                event_type = "Azure"
-                event_id = event_id.replace("-", "")
-            ran_on = data.get("ran_on", "Fn Project on Oracle Cloud")
 
-            for media_url in media:
-                img, status = process_single_media_file(
-                    ctx, sess, media_url, label_map,
-                    event_id, event_type, ran_on
-                )
+            # media = data.get("media", [])
+            event_id = data.get("id")
+            event_type = data.get("type", "")
+            photo_url = data.get("data").get("photo_url")
 
-                post_image(ctx, status, media_url, add_fn_logo(img))
-            else:
-                log.info("missing data")
+            # if event_type.startswith("Microsoft"):
+            #     event_type = "Azure"
+            #     event_id = event_id.replace("-", "")
+            
+            ran_on = data.get("ran_on", "Fn Project")
+
+            img, status = process_single_media_file(
+                ctx, sess, photo_url, label_map,
+                event_id, event_type, ran_on
+            )
+            post_image(ctx, status, photo_url, add_fn_logo(img))
 
     return fn
 

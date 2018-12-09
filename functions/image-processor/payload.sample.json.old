@@ -4,13 +4,13 @@
         "http://survivingchurch.org/wp-content/uploads/2016/10/Donald-Trump-Photos-HD-1024x768.png",
         "https://www.dairyqueen.com/Global/Food/Hot-Dogs_8-to-1_470x500.jpg",
         "https://pbs.twimg.com/profile_images/625802912887783424/_uzj-IZ4.jpg",
-        "https://i.ytimg.com/vi/lFarE1hH0ss/maxresdefault.jpg",
+        "https://i.ytimg.com/vi/lFarE1hH0ss/maxresdefault.jpg"
+    ],
+    "media_test": [
+        "https://i.ytimg.com/vi/Lu8lDgKInSM/hqdefault.jpg",
         "http://m.step.aero/Burningman_2017_gifting_plane_rides.jpg",
         "http://m.step.aero/Burningman_2017_raising_and_rigging.jpg",
         "http://m.step.aero/Chad's%20Dog.png"
-    ],
-    "media_test": [
-        "https://i.ytimg.com/vi/Lu8lDgKInSM/hqdefault.jpg"
     ],
     "event_id": "test_id",
     "event_type": "test_type",

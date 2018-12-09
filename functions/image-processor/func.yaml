@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: image-processor
-version: 0.0.104
+version: 0.0.109
 runtime: docker
 format: http-stream
 memory: 1024

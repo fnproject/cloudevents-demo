@@ -1,15 +1,16 @@
-import fdk
 import ujson
 import os
-import random
 import flickrapi
-import ssl
-import sys
+import random
 import requests
-from fdk import fixtures
+import fdk
 
-ssl._create_default_https_context = ssl._create_unverified_context
+from cloudevents.sdk import converters
+from cloudevents.sdk import marshaller
+from cloudevents.sdk.converters import structured
+from cloudevents.sdk.event import v02
 
+#ssl._create_default_https_context = ssl._create_unverified_context
 
 flickr = flickrapi.FlickrAPI(
     os.environ.get("FLICKR_API_KEY"),
@@ -18,52 +19,41 @@ flickr = flickrapi.FlickrAPI(
     format='parsed-json'
 )
 
-PHOTO_SOURCE_URL = 'https://farm{0}.staticflickr.com/{1}/{2}_{3}{4}.{5}'
-
-def get_image_url(photo_dict):
-    return PHOTO_SOURCE_URL.format(
-        photo_dict['farm'], photo_dict['server'],
-        photo_dict['id'], photo_dict['secret'],
-        '_c', 'jpg'
-    )
-
-
-def photo_to_payload(body, photo_dict):
-    return {
-        "id": photo_dict.get('id'),
-        "image_url": get_image_url(photo_dict),
-        "countrycode": body.get("countrycode"),
-        "bucket": body.get("bucket", "")
-    }
-
-
 def handler(ctx, data=None, loop=None):
-    payloads = []
+    
+    # Scrape Flickr
     if data and len(data) > 0:
         body = ujson.loads(data)
+        
         photos = flickr.photos.search(
-            text=body.get("query", "baby smile"),
-            per_page=int(body.get("num", "5")),
-            page=int(body.get("page", int(random.uniform(1, 50)))),
-            extras="original_format",
-            safe_search="1",
-            content_type="1",
+                text=body.get("query", "baby smile"),
+                per_page=int(body.get("num", "5")),
+                page=int(body.get("page", int(random.uniform(1, 50)))),
+                extras="original_format",
+                safe_search="1",
+                content_type="1",
         )
 
+        # For each photo
         for p in photos.get('photos', {'photo': {}}).get('photo', []):
-            payloads.append(photo_to_payload(body, p))
+            photo_url_tpl = 'https://farm{0}.staticflickr.com/{1}/{2}_{3}{4}.{5}'
+            photo_url = photo_url_tpl.format(p['farm'], p['server'],p['id'], p['secret'], '_c', 'jpg')
 
-    for p in payloads:
-        this_payload = {
-            "media":[p.get("image_url")], 
-            "event_id": "test_id",
-            "event_type": "test_type",
-            "ran_on": "<fn-hostname-or-dns>"
-        }
-        process_url = "http://docker.for.mac.localhost:8080/t/cloudevents/image-processor"
-        r = requests.post(process_url, data=ujson.dumps(this_payload))
-    
-    return {"result": payloads}
+            data = {"photo_url": photo_url}
+
+            event = (
+                v02.Event().
+                SetContentType("application/json").
+                SetData(data).
+                SetEventID("my-id").
+                SetSource("scraper").
+                SetEventType("cloudevent.flickr.image")
+            )
+            event_json = ujson.dumps(event.Properties())
+            print(event_json)
+
+            process_url = "http://docker.for.mac.localhost:8080/t/cloudevents/image-processor"
+            r = requests.post(process_url, data=event_json)
 
 
 if __name__ == "__main__":
